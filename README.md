@@ -513,7 +513,8 @@ Hit distance (*REBLUR* and *RELAX*):
 - probabilistic split for 2nd+ bounces is absolutely acceptable
 - in case of many paths per pixel `hitT` for specular must be "averaged" by `NRD.hlsli/NRD_FrontEnd_SpecHitDistAveraging_*` functions
 - for *REBLUR* hits distance must be normalized using `NRD.hlsli/REBLUR_FrontEnd_GetNormHitDist`
-- when using advanced sampling techniques (like *RIS*, *MIS*, *RESTIR*) `hitT` of a chosen sample cannot be simply passed to *NRD*, because these methods often pick a single ray (e.g., to a specific light source) to represent multiple potential reflections. This `hitT` must be probabilistically "filtered" (accepted or rejected) "through the lens" of the actual BRDF lobes. It may be done using *BRDF terms* and *PDF*. If such `hitT` is rejected, *in-lobe* hit distance must be used as the fallback. Always ignore `0 hitT` produced by *RESTIR* in disocclusions.
+- when using advanced sampling techniques (like *RIS*, *MIS*, *RESTIR*) `hitT` of a chosen sample cannot be simply passed to *NRD*, because these methods often pick a single ray (e.g., to a specific light source) to represent multiple potential reflections. This `hitT` must be probabilistically "filtered" (accepted or rejected) "through the lens" of the actual BRDF lobes. It may be done using *BRDF terms* and *PDF*. If such `hitT` is rejected, *in-lobe* hit distance must be used as the fallback
+- always ignore `0 hitT` produced by *RESTIR* in disocclusions
 
 Distance to occluder (*SIGMA*):
 - visibility ray must be cast from the point of interest to a light source ( i.e. *not* from a light source )
