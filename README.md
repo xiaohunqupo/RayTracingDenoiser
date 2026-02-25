@@ -505,7 +505,7 @@ Hit distance (*REBLUR* and *RELAX*):
   - `hitT` should not be `0` in other cases (avoid rays pointing inside a solid surface)
 - `hitT` must approach `0` at contact points
 - `hitT` must not include primary `hitT`
-- `hitT` must not be divided by *PDF* or *BRDF terms* (probability-based *acceptance/rejection* should be used instead)
+- `hitT` must not be divided by *PDF* or *BRDF terms* (probability-based *acceptance/rejection* should be used instead, if needed)
 - `hitT` for the 1st bounce after the primary hit or *PSR* must be provided "as is"
 - `hitT` for subsequent bounces and for bounces before *PSR* must be adjusted by curvature and lobe energy dissipation on the application side
   - do not pass *sum of lengths of all segments* as `hitT`. A solid baseline is to use hit distance for the 1st bounce only, it works well for diffuse and specular signals
