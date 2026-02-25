@@ -494,22 +494,26 @@ Radiance:
 - Radiance must be separated into diffuse and specular at primary hit (or secondary hit in case of *PSR*)
 
 Hit distance (*REBLUR* and *RELAX*):
+- NRD expects *in-lobe* `hitT`, i.e. `hitT` must represent the distance to a hit that resides within the specific *BRDF* lobe being denoised:
+  - use [*cos-weighted*](https://github.com/NVIDIA-RTX/MathLib/blob/main/ml.hlsli#L2386) sampler for diffuse (Monte-Carlo filtering can be applied on top)
+  - use [*VNDF v3*](https://github.com/NVIDIA-RTX/MathLib/blob/main/ml.hlsli#L2451) sampler for specular, which doesn't cast rays inside the surface (Monte-Carlo filtering can be applied on top)
+  - *MIS/RIS/RESTIR* require probabilities to describe "how good is the choosen ray direction for diffuse and specular lobes"
 - `hitT` can't be negative
-- `hitT` must not include primary hit distance
-- `hitT` for the first bounce after the primary hit or *PSR* must be provided "as is"
+- `hitT` must be `0` for skipped lobe in case of probabilistic lobe selection (specular selected and diffuse skipped and vice versa)
+  - `HitDistanceReconstructionMode` must be set to something other than `OFF`, but bear in mind that the search area is limited to 3x3 (or 5x5). In other words, it's the application's responsibility to guarantee a valid sample in this area. It can be achieved by clamping probabilities and using Bayer-like dithering (see [NRD sample/clamping lobe selection probability](https://github.com/NVIDIA-RTX/NRD-Sample/blob/6f1a294333dd32dd5ea404845354d76315824add/Shaders/TraceOpaque.cs.hlsl#L223))
+  - "Pre-pass" must be enabled (i.e. `diffusePrepassBlurRadius` and `specularPrepassBlurRadius` must be non-0) to compensate entropy increase, since radiance in valid samples is divided by probability to compensate 0 values in some neighbors
+  - `hitT` must not be `0` in other cases (avoid rays pointing inside a solid surface)
+- `hitT` must approach `0` at contact points
+- `hitT` must not include primary `hitT`
+- `hitT` must not be divided by *PDF* or *BRDF terms* (probability-based *acceptance/rejection* should be used instead)
+- `hitT` for the 1st bounce after the primary hit or *PSR* must be provided "as is"
 - `hitT` for subsequent bounces and for bounces before *PSR* must be adjusted by curvature and lobe energy dissipation on the application side
-  - Do not pass *sum of lengths of all segments* as `hitT`. A solid baseline is to use hit distance for the 1st bounce only, it works well for diffuse and specular signals
+  - do not pass *sum of lengths of all segments* as `hitT`. A solid baseline is to use hit distance for the 1st bounce only, it works well for diffuse and specular signals
   - *NRD sample* uses more complex approach for accumulating `hitT` along the path, which takes into account energy dissipation due to lobe spread and curvature at the current hit
-- For rays pointing inside the surface (VNDF sampling can easily produce those), `hitT` must be set to 0 (but better to not cast such rays)
-- Noise in hit distances must follow a diffuse or specular lobe. It implies that `hitT` for `roughness = 0` must be clean (if probabilistic sampling is not in use)
-- In case of probabilistic diffuse / specular selection at the primary hit, provided `hitT` must follow the following rules:
-  - Should not be divided by `PDF`
-  - If diffuse or specular sampling is skipped, `hitT` must be set to `0` for corresponding signal type
-  - `hitDistanceReconstructionMode` must be set to something other than `OFF`, but bear in mind that the search area is limited to 3x3 (or 5x5). In other words, it's the application's responsibility to guarantee a valid sample in this area. It can be achieved by clamping probabilities and using Bayer-like dithering (see [NRD sample/clamping lobe selection probability](https://github.com/NVIDIA-RTX/NRD-Sample/blob/6f1a294333dd32dd5ea404845354d76315824add/Shaders/TraceOpaque.cs.hlsl#L223))
-  - Pre-pass must be enabled (i.e. `diffusePrepassBlurRadius` and `specularPrepassBlurRadius` must be set to 20-70 pixels) to compensate entropy increase, since radiance in valid samples is divided by probability to compensate 0 values in some neighbors
-- Probabilistic split for 2nd+ bounces is absolutely acceptable
-- In case of many paths per pixel `hitT` for specular must be "averaged" by `NRD.hlsli/NRD_FrontEnd_SpecHitDistAveraging_*` functions
-- For *REBLUR* hits distance must be normalized using `NRD.hlsli/REBLUR_FrontEnd_GetNormHitDist`
+- probabilistic split for 2nd+ bounces is absolutely acceptable
+- in case of many paths per pixel `hitT` for specular must be "averaged" by `NRD.hlsli/NRD_FrontEnd_SpecHitDistAveraging_*` functions
+- for *REBLUR* hits distance must be normalized using `NRD.hlsli/REBLUR_FrontEnd_GetNormHitDist`
+- when using advanced sampling techniques (like *RIS*, *MIS*, *RESTIR*) `hitT` of a chosen sample cannot be simply passed to *NRD*, because these methods often pick a single ray (e.g., to a specific light source) to represent multiple potential reflections. This `hitT` must be probabilistically "filtered" (accepted or rejected) "through the lens" of the actual BRDF lobes. It may be done using *BRDF terms* and *PDF*. If such `hitT` is rejected, *in-lobe* hit distance must be used as the fallback. Always ignore `0 hitT` produced by *RESTIR* in disocclusions.
 
 Distance to occluder (*SIGMA*):
 - visibility ray must be cast from the point of interest to a light source ( i.e. *not* from a light source )
@@ -794,16 +798,16 @@ float hitDist = lerp( indirectDiffuseHitDist, directDiffuseHitDist, directHitDis
 
 **[NRD]** Denoising logic is driven by provided hit distances. For indirect lighting denoising passing hit distance for the 1st bounce only is a good baseline. For direct lighting a distance to an occluder or a light source is needed. Primary hit distance must be excluded in any case.
 
-**[NRD]** Importance sampling is recommended to achieve good results in case of complex lighting environments. Consider using:
-   - Cosine distribution for diffuse from non-local light sources
-   - VNDF sampling for specular
-   - Custom importance sampling for local light sources (*RTXDI*).
+**[NRD]** Importance sampling is recommended to achieve good results in case of complex lighting environments. Consider using as a solid baseline:
+   - *Cos-weighted* sampler for diffuse
+   - *VNDF v3* sampler for specular
+   - Custom importance sampling (*LightBVH-based Monte-Carlo filtering*,*RESTIR-DI*, *RESTIR-PT*).
 
 **[NRD]** Any form of a radiance cache (*[SHARC](https://github.com/NVIDIA-RTX/SHARC)* or *[NRC](https://github.com/NVIDIA-RTX/NRC)*) is highly recommended to achieve better signal quality and improve behavior in disocclusions.
 
 **[NRD]** Additionally the quality of the input signal can be increased by re-using already denoised information from the current or the previous frame.
 
-**[NRD]** Hit distances should come from an importance sampling method. But if denoising of AO/SO is needed, AO/SO must come from cos-weighted (or VNDF) sampling in a tradeoff of IQ.
+**[NRD]** Hit distances should come from an importance sampling method. But if denoising of AO/SO is needed, AO/SO must come from cos-weighted (or *VNDF v3*) sampling in a tradeoff of IQ.
 
 **[NRD]** Low discrepancy sampling (blue noise) helps to get more stable output in 0.5-1 rpp mode. It's a must for REBLUR-based Ambient and Specular Occlusion denoisers and SIGMA.
 
