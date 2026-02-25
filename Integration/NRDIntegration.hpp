@@ -16,8 +16,8 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #    include <alloca.h>
 #endif
 
-static_assert(NRD_VERSION_MAJOR >= 4 && NRD_VERSION_MINOR >= 16, "Unsupported NRD version!");
-static_assert(NRI_VERSION >= 177, "Unsupported NRI version!");
+static_assert(NRD_VERSION_MAJOR >= 4 && NRD_VERSION_MINOR >= 17, "Unsupported NRD version!");
+static_assert(NRI_VERSION >= 178, "Unsupported NRI version!");
 
 #define NRD_INTEGRATION_RETURN_FALSE_ON_FAILURE(expr) \
     if ((expr) != nri::Result::SUCCESS) \
@@ -349,7 +349,7 @@ bool Integration::_CreateResources() {
 
     { // Constant buffer view
         nri::BufferViewDesc constantBufferViewDesc = {};
-        constantBufferViewDesc.viewType = nri::BufferViewType::CONSTANT;
+        constantBufferViewDesc.type = nri::BufferView::CONSTANT_BUFFER;
         constantBufferViewDesc.buffer = m_ConstantBuffer;
         constantBufferViewDesc.size = m_ConstantBufferViewSize;
         NRD_INTEGRATION_RETURN_FALSE_ON_FAILURE(m_iCore.CreateBufferView(constantBufferViewDesc, m_ConstantBufferView));
@@ -785,9 +785,9 @@ void Integration::_Dispatch(nri::CommandBuffer& commandBuffer, nri::DescriptorPo
                 if (entry == m_CachedDescriptors.end()) {
                     const nri::TextureDesc& textureDesc = m_iCore.GetTextureDesc(*resource->nri.texture);
 
-                    nri::Texture2DViewDesc desc = {
+                    nri::TextureViewDesc desc = {
                         resource->nri.texture,
-                        isStorage ? nri::Texture2DViewType::SHADER_RESOURCE_STORAGE : nri::Texture2DViewType::SHADER_RESOURCE,
+                        isStorage ? nri::TextureView::STORAGE_TEXTURE : nri::TextureView::TEXTURE,
                         textureDesc.format,
                         0,
                         1,
@@ -795,8 +795,8 @@ void Integration::_Dispatch(nri::CommandBuffer& commandBuffer, nri::DescriptorPo
                         1,
                     };
 
-                    result = m_iCore.CreateTexture2DView(desc, descriptor);
-                    NRD_INTEGRATION_ASSERT(result == nri::Result::SUCCESS, "CreateTexture2DView() failed!");
+                    result = m_iCore.CreateTextureView(desc, descriptor);
+                    NRD_INTEGRATION_ASSERT(result == nri::Result::SUCCESS, "CreateTextureView() failed!");
 
                     m_CachedDescriptors.insert(std::make_pair(key, descriptor));
                     m_DescriptorsInFlight[m_DescriptorPoolIndex].push_back(descriptor);
