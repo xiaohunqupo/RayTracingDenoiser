@@ -647,6 +647,44 @@ Implementation details:
 - Jumping through "delta" events [code](https://github.com/NVIDIA-RTX/NRD-Sample/blob/0e4242ef553ac66c179d975322c7d18aaa14e3b5/Shaders/TraceOpaque.cs.hlsl#L452)
 - MV calculation [code](https://github.com/NVIDIA-RTX/NRD-Sample/blob/6f1a294333dd32dd5ea404845354d76315824add/Shaders/TraceOpaque.cs.hlsl#L644)
 
+## IQ VS PERFORMANCE: TRACING AND DENOISING RESOLUTION
+
+Two capabilities should be considered together:
+
+- *SH-mode* radiance denoising in *REBLUR* or *RELAX* adds overhead over the corresponding non-SH denoiser, but should be treated as a must-have when *NRD* produces a lower-resolution output. Its output enables an application-side *SG/SH resolve* at *full* render resolution against *full*-resolution guides, restoring detail and suppressing artifacts introduced by lower-resolution processing. See [`NRD.hlsli`](https://github.com/NVIDIA-RTX/NRD/blob/master/Shaders/NRD.hlsli) and [Interaction with upscaling](#interaction-with-upscaling-dlssfsrxesstaau)
+- *Reduced-resolution and checkerboard processing* can substantially improve performance: *NRD* can process a smaller image, reconstruct checkerboarded inputs on the fly, or combine both
+
+In short, reduced-resolution and checkerboard modes trade image quality for performance; *SG/SH* resolve is the quality-recovery step that makes those savings practical.
+
+Tracing and denoising resolutions are separate performance levers, but they have different configuration scopes. Tracing can be selected per signal. Denoising resolution is configured per *NRD* instance through `CommonSettings::resourceSize` and `CommonSettings::rectSize`, so signals denoised at different resolutions require separate instances. A combined diffuse-specular denoiser also has a single shared `checkerboardMode`.
+
+In the notation below, `{X; Y}` is the effective resolution relative to the render resolution. The `-cb` suffix marks a checkerboarded axis: for example, `{0.5-cb; 1}` means *half* sampling density along `X` via *checkerboarding* and *full* resolution along `Y`. An unsuffixed `0.5` means that the axis is actually downscaled. All inputs still have the logical denoising resolution, with checkerboarded noisy samples tightly packed into the left *half* of the input texture as described by `CheckerboardMode`.
+
+The main variants, ordered from best image quality to best performance, are:
+
+| Variant | Tracing | Denoising | Application-side setup and tradeoff |
+|---|---:|---:|---|
+| *Full* resolution (*best IQ, worst performance*) | *full*&nbsp;<code>{1;&nbsp;1}</code> | *full*&nbsp;<code>{1;&nbsp;1}</code> | Trace and denoise every pixel at *full* resolution. This is the baseline. |
+| Checkerboard tracing | *half*&nbsp;<code>{0.5&#8209;cb;&nbsp;1}</code> | *full*&nbsp;<code>{1;&nbsp;1}</code> | Trace alternating screen pixels along `X`, pack the noisy samples, and enable `checkerboardMode`. *NRD* reconstructs the missing samples at *full* render resolution. This reduces tracing to *half* resolution, but not the number of pixels processed by *NRD*. |
+| Checkerboard tracing with vertical downscaling | *quarter*&nbsp;<code>{0.5&#8209;cb;&nbsp;0.5}</code> | *half*&nbsp;<code>{1;&nbsp;0.5}</code> | Downsample the guides and noisy signal `2x` along `Y`, then trace alternating screen pixels along `X` in that *half*-height grid and pack the noisy samples. Enable `checkerboardMode` so *NRD* reconstructs `X` to render resolution; the application only needs to upscale the denoised result `2x` along `Y`. This traces one *quarter* of the render-resolution pixel count while *NRD* processes one *half*. |
+| *Quarter* resolution (*best performance, worst IQ*) | *quarter*&nbsp;<code>{0.5;&nbsp;0.5}</code> | *quarter*&nbsp;<code>{0.5;&nbsp;0.5}</code> | Trace and denoise every pixel of a *quarter*-resolution grid. From *NRD*'s point of view this is *full*-resolution input, so checkerboarding is disabled. The application upscales the denoised result in both dimensions. |
+
+When *NRD* runs below render resolution, bind downsampled guides to *NRD* but retain the original *full*-resolution guides for the application-side resolve. Spatial upscaling remains the application's responsibility: the *SG/SH resolve* helpers reconstruct signal detail but do not resize a texture.
+
+With those constraints in mind, diffuse and specular can use different configurations:
+
+- Specular:
+  - `1 rpp` at *full* render resolution (best IQ)
+  - `0.5 rpp` via checkerboarding (stable)
+  - probabilistic ray skipping with a guaranteed sample in a `3x3` area (offers *full*-resolution quality on metals, but may be less stable on dielectrics because diffuse consumes part of the per-pixel ray budget)
+- Diffuse:
+  - `1 rpp` at *full* render resolution (maybe unnecessarily expensive)
+  - `0.5 rpp` via checkerboarding
+  - `0.25 rpp` with *half*-resolution denoising (see "Checkerboard tracing with vertical downscaling" in the table)
+  - `0.25 rpp` with *quarter*-resolution denoising
+
+When tracing every pixel of the denoising grid, ray allocation between diffuse and specular is a separate decision. For a `1 rpp` budget, probabilistic lobe selection at the primary or *PSR* hit generally uses samples more efficiently than a fixed *0.5 diffuse + 0.5 specular* split: each pixel traces one selected lobe, and metals can spend the entire budget on specular. For `HitDistanceReconstructionMode::AREA_3X3`, clamp non-deterministic selection probabilities to `[1/4; 3/4]` and use Bayer dithering instead of white noise to guarantee a valid sample in the `3x3` reconstruction footprint; exact `0` and `1` remain valid for deterministic cases such as metals. Keep the pre-pass enabled. `NormalEncoding::R10_G10_B10_A2_UNORM` is highly recommended because it enables `materialID` support. To prevent skipped or zero diffuse on metals from being mixed with valid diffuse on non-metals, the application must also pack meaningful material IDs and configure `minMaterialForDiffuse` (and `minMaterialForSpecular` where needed). See the [Noisy inputs](#noisy-inputs) section for more details.
+
 ## INTERACTION WITH UPSCALING (DLSS/FSR/XESS/TAAU)
 
 The temporal part of *NRD* naturally suppresses jitter, which is essential for upscaling techniques. If an *SH* denoiser is in use, a high quality resolve can be applied to the final output to regain back macro details, micro details and per-pixel jittering. As an example, the image below demonstrates the results *before* and *after* resolve with active *DLSS* (quality mode).
