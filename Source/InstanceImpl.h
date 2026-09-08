@@ -373,7 +373,9 @@ private:
     float m_CheckerboardResolveAccumSpeed = 0.0f;
     float m_JitterDelta = 0.0f;
     float m_TimeDelta = 0.0f;
+    float m_TimeDeltaSmoothed = 16.66f;
     float m_FrameRateScale = 0.0f;
+    float m_FrameRateScaleSmoothed = 1.0f;
     float m_ProjectY = 0.0f;
     uint32_t m_AccumulatedFrameNum = 0;
     uint16_t m_TransientPoolOffset = 0;

@@ -255,10 +255,8 @@ nrd::Result nrd::InstanceImpl::SetCommonSettings(const CommonSettings& commonSet
     memcpy(&m_CommonSettings, &commonSettings, sizeof(commonSettings));
 
     // Silently fix settings for known cases
-    if (m_IsFirstUse) {
+    if (m_IsFirstUse)
         m_CommonSettings.accumulationMode = AccumulationMode::CLEAR_AND_RESTART;
-        m_IsFirstUse = false;
-    }
 
     if (m_CommonSettings.accumulationMode != AccumulationMode::CONTINUE) {
         m_SplitScreenPrev = 0.0f;
@@ -451,16 +449,29 @@ nrd::Result nrd::InstanceImpl::SetCommonSettings(const CommonSettings& commonSet
         m_Timer.SaveCurrentTime();
     }
 
-    m_TimeDelta = m_CommonSettings.timeDeltaBetweenFrames > 0.0f ? m_CommonSettings.timeDeltaBetweenFrames : m_Timer.GetSmoothedElapsedTime();
-    m_FrameRateScale = max(33.333f / m_TimeDelta, 1.0f);
+    m_TimeDelta = m_CommonSettings.timeDeltaBetweenFrames > 0.0f ? m_CommonSettings.timeDeltaBetweenFrames : m_Timer.GetElapsedTime();
+    m_FrameRateScale = clamp(16.66f / m_TimeDelta, 0.25f, 4.0f);
+
+    if (isNewFrame) {
+        if (m_IsFirstUse || m_CommonSettings.accumulationMode != AccumulationMode::CONTINUE)
+            m_TimeDeltaSmoothed = m_TimeDelta;
+        else {
+            float smoothedFPSprev = 1000.0f / m_TimeDeltaSmoothed;
+            float n = smoothedFPSprev * 0.2f;
+            m_TimeDeltaSmoothed += (m_TimeDelta - m_TimeDeltaSmoothed) / (1.0f + n);
+        }
+    }
+    m_FrameRateScaleSmoothed = clamp(16.66f / m_TimeDeltaSmoothed, 0.25f, 4.0f);
 
     float dx = abs(m_CommonSettings.cameraJitter[0] - m_CommonSettings.cameraJitterPrev[0]);
     float dy = abs(m_CommonSettings.cameraJitter[1] - m_CommonSettings.cameraJitterPrev[1]);
     m_JitterDelta = max(dx, dy);
 
-    float FPS = m_FrameRateScale * 30.0f;
+    float FPS = m_FrameRateScale * 60.0f;
     float nonLinearAccumSpeed = FPS * 0.25f / (1.0f + FPS * 0.25f);
     m_CheckerboardResolveAccumSpeed = lerp(nonLinearAccumSpeed, 0.5f, m_JitterDelta);
+
+    m_IsFirstUse = false;
 
     return isValid ? Result::SUCCESS : Result::INVALID_ARGUMENT;
 }

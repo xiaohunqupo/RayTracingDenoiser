@@ -856,7 +856,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Current specular signal ( surface motion )
     float specSMBConfidence = (SMBReprojectionFound > 0 ? 1.0 : 0.0) *
-        GetEncodingAwareNormalWeight(V, Vprev, lobeHalfAngle * NoV / gFramerateScale, 0.0, 0.0);
+        GetEncodingAwareNormalWeight(V, Vprev, lobeHalfAngle * NoV / gFrameRateScaleSmoothed, 0.0, 0.0);
 
     float specSMBAlpha = 1.0 - specSMBConfidence;
     float specSMBResponsiveAlpha = 1.0 - specSMBConfidence;

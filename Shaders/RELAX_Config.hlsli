@@ -83,7 +83,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float, gDebug ) \
     NRD_CONSTANT( float, gOrthoMode ) \
     NRD_CONSTANT( float, gUnproject ) \
-    NRD_CONSTANT( float, gFramerateScale ) \
+    NRD_CONSTANT( float, gFrameRateScaleSmoothed ) \
     NRD_CONSTANT( float, gCheckerboardResolveAccumSpeed ) \
     NRD_CONSTANT( float, gHistoryFixFrameNum ) \
     NRD_CONSTANT( float, gHistoryFixBasePixelStride ) \

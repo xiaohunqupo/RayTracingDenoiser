@@ -244,7 +244,8 @@ float ComputeAntilag( float h, float a, float sigma, float accumSpeed )
 {
     // Tests 4, 36, 44, 47, 95 ( no SHARC, stop animation )
     float s = sigma * gAntilagSettings.x;
-    float magic = gAntilagSettings.y * gFramerateScale * gFramerateScale;
+    float scale = 2.0 * gFrameRateScaleSmoothed;
+    float magic = gAntilagSettings.y * scale * scale;
 
     #if( REBLUR_ANTILAG_MODE == 0 )
         // Old mode, but uses better threshold ( not bad )
@@ -321,7 +322,7 @@ float2 GetTemporalAccumulationParams( float isInScreenMulFootprintQuality, float
     w *= float( REBLUR_SHOW == 0 );
     w *= antilag;
 
-    return float2( w, 1.0 + 3.0 * gFramerateScale * w );
+    return float2( w, 1.0 + w * 3.0 * 2.0 * gFrameRateScaleSmoothed );
 }
 
 // Filtering

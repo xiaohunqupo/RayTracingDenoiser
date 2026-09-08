@@ -162,7 +162,7 @@ void nrd::InstanceImpl::AddSharedConstants_Relax(const RelaxSettings& settings, 
     consts->gDebug = m_CommonSettings.debug;
     consts->gOrthoMode = m_OrthoMode;
     consts->gUnproject = 1.0f / (0.5f * rectH * m_ProjectY);
-    consts->gFramerateScale = clamp(16.66f / m_TimeDelta, 0.25f, 4.0f); // TODO: use m_FrameRateScale?
+    consts->gFrameRateScaleSmoothed = m_FrameRateScaleSmoothed;
     consts->gCheckerboardResolveAccumSpeed = m_CheckerboardResolveAccumSpeed;
     consts->gHistoryFixFrameNum = settings.historyFixFrameNum + 1.0f;
     consts->gHistoryFixBasePixelStride = (float)settings.historyFixBasePixelStride;

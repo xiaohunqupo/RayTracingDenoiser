@@ -364,7 +364,8 @@ void nrd::InstanceImpl::AddSharedConstants_Reblur(const ReblurSettings& settings
     consts->gUnproject = unproject;
     consts->gDenoisingRange = m_CommonSettings.denoisingRange;
     consts->gPlaneDistSensitivity = settings.planeDistanceSensitivity;
-    consts->gFramerateScale = m_FrameRateScale;
+    consts->gFrameRateScale = m_FrameRateScale;
+    consts->gFrameRateScaleSmoothed = m_FrameRateScaleSmoothed;
     consts->gMaxBlurRadius = max(maxBlurRadius, settings.minBlurRadius);
     consts->gMinBlurRadius = settings.minBlurRadius;
     consts->gDiffPrepassBlurRadius = diffusePrepassBlurRadius;

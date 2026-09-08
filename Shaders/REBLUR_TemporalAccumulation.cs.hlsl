@@ -219,6 +219,9 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float smbParallaxInPixels1 = ComputeParallaxInPixels( Xprev + gCameraDelta.xyz, gOrthoMode == 0.0 ? smbPixelUv : pixelUv, gWorldToClipPrev, gRectSize );
     float smbParallaxInPixels2 = ComputeParallaxInPixels( Xprev - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : smbPixelUv, gWorldToClip, gRectSize );
 
+    smbParallaxInPixels1 *= REBLUR_FRAME_RATE_COMPENSATION;
+    smbParallaxInPixels2 *= REBLUR_FRAME_RATE_COMPENSATION;
+
     float smbParallaxInPixelsMax = max( smbParallaxInPixels1, smbParallaxInPixels2 );
     float smbParallaxInPixelsMin = min( smbParallaxInPixels1, smbParallaxInPixels2 );
 
@@ -462,7 +465,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             {
                 float2 uv1 = Geometry::GetScreenUv( gWorldToClipPrev, GetXvirtual( hitDistForTracking, curvature, X, X, N, V, roughness ) );
                 float2 uv2 = Geometry::GetScreenUv( gWorldToClipPrev, X );
-                float a = length( ( uv1 - uv2 ) * gRectSize );
+                float a = length( ( uv1 - uv2 ) * gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
                 curvature *= float( a < NRD_MAX_ALLOWED_VIRTUAL_MOTION_ACCELERATION * smbParallaxInPixelsMax + gRectSizeInv.x );
             }
         }
@@ -476,7 +479,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         vmbPixelUv = materialID == gCameraAttachedReflectionMaterialID ? smbPixelUv : vmbPixelUv;
 
         float2 vmbDelta = vmbPixelUv - smbPixelUv;
-        float vmbPixelsTraveled = length( vmbDelta * gRectSize );
+        float vmbPixelsTraveled = length( vmbDelta * gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
 
         Filtering::Bilinear vmbBilinearFilter = Filtering::GetBilinearFilter( vmbPixelUv, gRectSizePrev );
         float2 vmbBilinearGatherUv = ( NRD_PIXEL_POS( gPrev_ViewZ, vmbBilinearFilter.origin ) + 1.0 ) * gResourceSizeInvPrev;
@@ -636,7 +639,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             r *= 0.5; // strengthen the test
             r = max( r, 0.1 * roughness ); // clean up dirt for high roughness
 
-            float d = length( ( vmbPixelUvPrev - vmbPixelUv ) * gRectSize );
+            float d = length( ( vmbPixelUvPrev - vmbPixelUv ) * gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
 
             parallaxWeight = Math::LinearStep( r, 0.0, d );
 
@@ -656,7 +659,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             // IMPORTANT: 2 is needed because:
             // - line *** allows fallback to laggy surface motion, which can be wrongly redistributed by virtual motion
             // - we use at least linear filters, as the result a wider initial offset is needed
-            float stepBetweenTaps = min( vmbPixelsTraveled * gFramerateScale, 2.0 ) + vmbPixelsTraveled / REBLUR_VIRTUAL_MOTION_PREV_PREV_WEIGHT_ITERATION_NUM;
+            float stepBetweenTaps = min( vmbPixelsTraveled * 2.0 * gFrameRateScale / REBLUR_FRAME_RATE_COMPENSATION, 2.0 ) + vmbPixelsTraveled / REBLUR_VIRTUAL_MOTION_PREV_PREV_WEIGHT_ITERATION_NUM;
             vmbDelta *= Math::Rsqrt( Math::LengthSquared( vmbDelta ) );
             vmbDelta /= gRectSizePrev;
 
@@ -696,7 +699,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         //  - normal and prev-prev tests failures
         //  - "vmb" regression on bumpy surfaces to laggy surface motion
         //  - "vmb" may be wrong for objects attached to the camera, especially for self-reflections of such objects
-        float mvLengthInPixels = length( ( smbPixelUv - pixelUv ) * gRectSize );
+        float mvLengthInPixels = length( ( smbPixelUv - pixelUv ) * gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
         float slowMotionFactor = saturate( mvLengthInPixels / 0.25 );
 
         float surfaceHistoryConfidence;

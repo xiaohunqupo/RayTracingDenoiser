@@ -84,6 +84,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define REBLUR_POST_BLUR_FRACTION_SCALE                         0.5
 #define REBLUR_POST_BLUR_RADIUS_SCALE                           2.0
 
+#define REBLUR_FRAME_RATE_COMPENSATION                          1.0 // TODO: try out "gFrameRateScale * 0.5"
 #define REBLUR_NORMAL_ULP                                       0.0 // was "NRD_NORMAL_ENCODING_ERROR"
 #define REBLUR_ALMOST_ZERO_ANGLE                                cos( Math::DegToRad( 89.0 ) )
 #define REBLUR_VIRTUAL_MOTION_PREV_PREV_WEIGHT_ITERATION_NUM    1 // TODO: 2?
@@ -158,7 +159,8 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float, gUnproject ) \
     NRD_CONSTANT( float, gDenoisingRange ) \
     NRD_CONSTANT( float, gPlaneDistSensitivity ) \
-    NRD_CONSTANT( float, gFramerateScale ) \
+    NRD_CONSTANT( float, gFrameRateScale ) \
+    NRD_CONSTANT( float, gFrameRateScaleSmoothed ) \
     NRD_CONSTANT( float, gMinBlurRadius ) \
     NRD_CONSTANT( float, gMaxBlurRadius ) \
     NRD_CONSTANT( float, gDiffPrepassBlurRadius ) \
