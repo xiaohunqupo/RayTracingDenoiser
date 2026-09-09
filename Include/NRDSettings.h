@@ -134,7 +134,8 @@ namespace nrd
         // (>0) - "viewZ = IN_VIEWZ * viewZScale" (mostly for FP16 viewZ)
         float viewZScale = 1.0f;
 
-        // (Optional) (ms) - user provided if > 0, otherwise - tracked internally
+        // (Optional) (ms) - immediate and unfiltered previous frame time
+        // User provided if > 0, otherwise - tracked internally
         float timeDeltaBetweenFrames = 0.0f;
 
         // (units > 0) - use TLAS or tracing range

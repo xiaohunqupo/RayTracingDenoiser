@@ -84,7 +84,11 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define REBLUR_POST_BLUR_FRACTION_SCALE                         0.5
 #define REBLUR_POST_BLUR_RADIUS_SCALE                           2.0
 
-#define REBLUR_FRAME_RATE_COMPENSATION                          1.0 // TODO: try out "gFrameRateScale * 0.5"
+// 1.0                    - frame-based ( old behavior )
+// gFrameRateScale * 1.0  - time-based matching "old @ 60 FPS"
+// gFrameRateScale * 0.75 - time-based matching "old @ 80 FPS" ( a bit more relaxed, better for FPS < 60 )
+#define REBLUR_FRAME_RATE_COMPENSATION                          ( gFrameRateScale * 0.75 )
+
 #define REBLUR_NORMAL_ULP                                       0.0 // was "NRD_NORMAL_ENCODING_ERROR"
 #define REBLUR_ALMOST_ZERO_ANGLE                                cos( Math::DegToRad( 89.0 ) )
 #define REBLUR_VIRTUAL_MOTION_PREV_PREV_WEIGHT_ITERATION_NUM    1 // TODO: 2?

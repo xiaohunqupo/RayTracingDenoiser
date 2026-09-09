@@ -15,6 +15,11 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define RELAX_MAX_ACCUM_FRAME_NUM                           255
 #define RELAX_ANTILAG_ACCELERATION_AMOUNT_SCALE             10.0 // Multiplier used to put RelaxAntilagSettings::accelerationAmount to convenient [0; 1] range
 
+// 1.0                    - frame-based ( old behavior )
+// gFrameRateScale * 1.0  - time-based matching "old @ 60 FPS"
+// gFrameRateScale * 0.75 - time-based matching "old @ 80 FPS" ( a bit more relaxed, better for FPS < 60 )
+#define RELAX_FRAME_RATE_COMPENSATION                       ( gFrameRateScale * 0.75 )
+
 #define RELAX_SH_TYPE                                       float3
 
 // Shared constants
@@ -83,6 +88,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float, gDebug ) \
     NRD_CONSTANT( float, gOrthoMode ) \
     NRD_CONSTANT( float, gUnproject ) \
+    NRD_CONSTANT( float, gFrameRateScale ) \
     NRD_CONSTANT( float, gFrameRateScaleSmoothed ) \
     NRD_CONSTANT( float, gCheckerboardResolveAccumSpeed ) \
     NRD_CONSTANT( float, gHistoryFixFrameNum ) \

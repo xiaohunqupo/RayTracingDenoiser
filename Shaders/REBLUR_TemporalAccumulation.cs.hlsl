@@ -216,11 +216,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     }
 
     // Parallax
-    float smbParallaxInPixels1 = ComputeParallaxInPixels( Xprev + gCameraDelta.xyz, gOrthoMode == 0.0 ? smbPixelUv : pixelUv, gWorldToClipPrev, gRectSize );
-    float smbParallaxInPixels2 = ComputeParallaxInPixels( Xprev - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : smbPixelUv, gWorldToClip, gRectSize );
-
-    smbParallaxInPixels1 *= REBLUR_FRAME_RATE_COMPENSATION;
-    smbParallaxInPixels2 *= REBLUR_FRAME_RATE_COMPENSATION;
+    float smbParallaxInPixels1 = ComputeParallaxInPixels( Xprev + gCameraDelta.xyz, gOrthoMode == 0.0 ? smbPixelUv : pixelUv, gWorldToClipPrev, gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
+    float smbParallaxInPixels2 = ComputeParallaxInPixels( Xprev - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : smbPixelUv, gWorldToClip, gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
 
     float smbParallaxInPixelsMax = max( smbParallaxInPixels1, smbParallaxInPixels2 );
     float smbParallaxInPixelsMin = min( smbParallaxInPixels1, smbParallaxInPixels2 );
@@ -394,7 +391,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             // IMPORTANT: the direction of "deltaUv" is important ( test 1 )
             float2 uvForZeroParallax = gOrthoMode == 0.0 ? smbPixelUv : pixelUv;
             float2 deltaUv = uvForZeroParallax - Geometry::GetScreenUv( gWorldToClipPrev, Xprev + gCameraDelta.xyz ); // TODO: repeats code for "smbParallaxInPixels1" with "-" sign
-            deltaUv *= gRectSize;
+            deltaUv *= gRectSize * REBLUR_FRAME_RATE_COMPENSATION;
             deltaUv /= max( smbParallaxInPixels1, 1.0 / 256.0 );
 
             // 10 edge

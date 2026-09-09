@@ -480,8 +480,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 #endif
 
     // Calculating surface parallax
-    float smbParallaxInPixels1 = ComputeParallaxInPixels( prevWorldPos + gCameraDelta.xyz, gOrthoMode == 0.0 ? prevUVSMB : pixelUv, gWorldToClipPrev, gRectSize );
-    float smbParallaxInPixels2 = ComputeParallaxInPixels( prevWorldPos - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize );
+    float smbParallaxInPixels1 = ComputeParallaxInPixels( prevWorldPos + gCameraDelta.xyz, gOrthoMode == 0.0 ? prevUVSMB : pixelUv, gWorldToClipPrev, gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
+    float smbParallaxInPixels2 = ComputeParallaxInPixels( prevWorldPos - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
 
     float smbParallaxInPixelsMax = max( smbParallaxInPixels1, smbParallaxInPixels2 );
     float smbParallaxInPixelsMin = min( smbParallaxInPixels1, smbParallaxInPixels2 );
@@ -664,7 +664,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         // IMPORTANT: the direction of "deltaUv" is important ( test 1 )
         float2 uvForZeroParallax = gOrthoMode == 0.0 ? prevUVSMB : pixelUv;
         float2 deltaUv = uvForZeroParallax - Geometry::GetScreenUv( gWorldToClipPrev, prevWorldPos + gCameraDelta.xyz ); // TODO: repeats code for "smbParallaxInPixels1" with "-" sign
-        deltaUv *= gRectSize;
+        deltaUv *= gRectSize * RELAX_FRAME_RATE_COMPENSATION;
         deltaUv /= max( smbParallaxInPixels1, 1.0 / 256.0 );
 
         // 10 edge
@@ -733,7 +733,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         {
             float2 uv1 = Geometry::GetScreenUv( gWorldToClipPrev, GetXvirtual( hitDist, curvature, currentWorldPos, currentWorldPos, currentNormal, V, currentRoughness ) );
             float2 uv2 = Geometry::GetScreenUv( gWorldToClipPrev, currentWorldPos );
-            float a = length( ( uv1 - uv2 ) * gRectSize );
+            float a = length( ( uv1 - uv2 ) * gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
             curvature *= float( a < NRD_MAX_ALLOWED_VIRTUAL_MOTION_ACCELERATION * smbParallaxInPixelsMax + gRectSizeInv.x );
         }
     }
@@ -785,7 +785,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Curvature angle for virtual motion based reprojection
     float2 uvDiff = prevUVVMB - prevUVSMB;
-    float uvDiffLengthInPixels = length(uvDiff * gRectSize);
+    float uvDiffLengthInPixels = length(uvDiff * gRectSize) * RELAX_FRAME_RATE_COMPENSATION;
 
     float tanCurvature = abs(curvature * pixelSize);
     tanCurvature *= max(uvDiffLengthInPixels / max(NoV, 0.01), 1.0); // path length
@@ -851,7 +851,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float unproj1 = min(hitDist, hitDistForTrackingPrev) / PixelRadiusToWorld(gUnproject, gOrthoMode, 1.0, max(virtualWorldPosLength, virtualWorldPosLengthPrev));
     float lobeRadiusInPixels = lobeTanHalfAngle * unproj1;
 
-    float deltaParallaxInPixels = length((prevUVVMBTest - prevUVVMB) * gRectSize);
+    float deltaParallaxInPixels = length((prevUVVMBTest - prevUVVMB) * gRectSize) * RELAX_FRAME_RATE_COMPENSATION;
     virtualHistoryHitDistConfidence *= Math::SmoothStep(lobeRadiusInPixels + 0.25, 0.0, deltaParallaxInPixels);
 
     // Current specular signal ( surface motion )
