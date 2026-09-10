@@ -216,8 +216,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     }
 
     // Parallax
-    float smbParallaxInPixels1 = ComputeParallaxInPixels( Xprev + gCameraDelta.xyz, gOrthoMode == 0.0 ? smbPixelUv : pixelUv, gWorldToClipPrev, gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
-    float smbParallaxInPixels2 = ComputeParallaxInPixels( Xprev - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : smbPixelUv, gWorldToClip, gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
+    float smbParallaxInPixels1 = ComputeParallaxInPixels( Xprev + gCameraDelta.xyz, gOrthoMode == 0.0 ? smbPixelUv : pixelUv, gWorldToClipPrev, gRectSize );
+    float smbParallaxInPixels2 = ComputeParallaxInPixels( Xprev - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : smbPixelUv, gWorldToClip, gRectSize );
 
     float smbParallaxInPixelsMax = max( smbParallaxInPixels1, smbParallaxInPixels2 );
     float smbParallaxInPixelsMin = min( smbParallaxInPixels1, smbParallaxInPixels2 );
@@ -391,7 +391,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             // IMPORTANT: the direction of "deltaUv" is important ( test 1 )
             float2 uvForZeroParallax = gOrthoMode == 0.0 ? smbPixelUv : pixelUv;
             float2 deltaUv = uvForZeroParallax - Geometry::GetScreenUv( gWorldToClipPrev, Xprev + gCameraDelta.xyz ); // TODO: repeats code for "smbParallaxInPixels1" with "-" sign
-            deltaUv *= gRectSize * REBLUR_FRAME_RATE_COMPENSATION;
+            deltaUv *= gRectSize;
             deltaUv /= max( smbParallaxInPixels1, 1.0 / 256.0 );
 
             // 10 edge
@@ -462,7 +462,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             {
                 float2 uv1 = Geometry::GetScreenUv( gWorldToClipPrev, GetXvirtual( hitDistForTracking, curvature, X, X, N, V, roughness ) );
                 float2 uv2 = Geometry::GetScreenUv( gWorldToClipPrev, X );
-                float a = length( ( uv1 - uv2 ) * gRectSize ) * REBLUR_FRAME_RATE_COMPENSATION;
+                float a = length( ( uv1 - uv2 ) * gRectSize );
                 curvature *= float( a < NRD_MAX_ALLOWED_VIRTUAL_MOTION_ACCELERATION * smbParallaxInPixelsMax + gRectSizeInv.x );
             }
         }
@@ -703,7 +703,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         {
             // TODO: it would be good to use "XvirtualLength" as the denominator to make parallax of distant reflections smaller, but
             // it adds self-interference of "vmb" and "smb", which may look bad in some cases ( test 6 )
-            float a = atan( smbParallaxInPixelsMax * pixelSize / length( X ) );
+            float a = atan( REBLUR_FRAME_RATE_COMPENSATION * smbParallaxInPixelsMax * pixelSize / length( X ) );
             //a = acos( saturate( dot( V, smbVprev ) ) ); // numerically unstable
 
             // Increase "smb" confidence if there is no motion ( objects attached to the camera ).

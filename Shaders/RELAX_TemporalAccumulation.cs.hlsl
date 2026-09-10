@@ -480,8 +480,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 #endif
 
     // Calculating surface parallax
-    float smbParallaxInPixels1 = ComputeParallaxInPixels( prevWorldPos + gCameraDelta.xyz, gOrthoMode == 0.0 ? prevUVSMB : pixelUv, gWorldToClipPrev, gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
-    float smbParallaxInPixels2 = ComputeParallaxInPixels( prevWorldPos - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
+    float smbParallaxInPixels1 = ComputeParallaxInPixels( prevWorldPos + gCameraDelta.xyz, gOrthoMode == 0.0 ? prevUVSMB : pixelUv, gWorldToClipPrev, gRectSize );
+    float smbParallaxInPixels2 = ComputeParallaxInPixels( prevWorldPos - gCameraDelta.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize );
 
     float smbParallaxInPixelsMax = max( smbParallaxInPixels1, smbParallaxInPixels2 );
     float smbParallaxInPixelsMin = min( smbParallaxInPixels1, smbParallaxInPixels2 );
@@ -664,7 +664,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         // IMPORTANT: the direction of "deltaUv" is important ( test 1 )
         float2 uvForZeroParallax = gOrthoMode == 0.0 ? prevUVSMB : pixelUv;
         float2 deltaUv = uvForZeroParallax - Geometry::GetScreenUv( gWorldToClipPrev, prevWorldPos + gCameraDelta.xyz ); // TODO: repeats code for "smbParallaxInPixels1" with "-" sign
-        deltaUv *= gRectSize * RELAX_FRAME_RATE_COMPENSATION;
+        deltaUv *= gRectSize;
         deltaUv /= max( smbParallaxInPixels1, 1.0 / 256.0 );
 
         // 10 edge
@@ -733,7 +733,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         {
             float2 uv1 = Geometry::GetScreenUv( gWorldToClipPrev, GetXvirtual( hitDist, curvature, currentWorldPos, currentWorldPos, currentNormal, V, currentRoughness ) );
             float2 uv2 = Geometry::GetScreenUv( gWorldToClipPrev, currentWorldPos );
-            float a = length( ( uv1 - uv2 ) * gRectSize ) * RELAX_FRAME_RATE_COMPENSATION;
+            float a = length( ( uv1 - uv2 ) * gRectSize );
             curvature *= float( a < NRD_MAX_ALLOWED_VIRTUAL_MOTION_ACCELERATION * smbParallaxInPixelsMax + gRectSizeInv.x );
         }
     }
